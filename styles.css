@@ -1,0 +1,806 @@
+/**
+ * @file styles.css
+ * @description 산사 (Sansa View) — 청연당(淸緣堂) 온라인 사찰 스타일시트
+ * - Liquid Glass 반투명 유리 굴절 UI
+ * - 3D 참배객 이름표 (visitor-labels)
+ * - 향로 / 복전함 3D 투영 사인 및 분향 의식 상태 배너 (devotional-controls)
+ * - 108 염주 3D 수행 뷰 (sansa-beads-view)
+ * - 목탁 타격 및 16박 자동재생 뷰 (sansa-moktak-view)
+ */
+
+:root {
+  --bg-deep: #141815;
+  --glass-bg: rgba(28, 33, 29, 0.56);
+  --glass-bg-hover: rgba(42, 49, 43, 0.72);
+  --glass-active: rgba(214, 184, 124, 0.24);
+  --glass-border: rgba(244, 236, 216, 0.22);
+  --glass-border-strong: rgba(240, 211, 152, 0.52);
+  --text-primary: #f7f3e8;
+  --text-secondary: rgba(244, 237, 222, 0.74);
+  --accent-gold: #e6c483;
+  --accent-warm: #f2d59b;
+  --shadow-soft: 0 12px 34px rgba(8, 11, 9, 0.36);
+  --font-sans: 'Pretendard Variable', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-serif: 'Noto Serif KR', 'Nanum Myeongjo', Georgia, serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+/* ==========================================================================
+   1. 3D WebGL 뷰포트 컨테이너
+   ========================================================================== */
+#sansa-viewport {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  outline: none;
+}
+
+#sansa-viewport canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  outline: none;
+}
+
+/* ==========================================================================
+   2. 로딩 오버레이
+   ========================================================================== */
+.sansa-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: radial-gradient(circle at 50% 42%, #242d26 0%, #121713 100%);
+  transition: opacity 0.6s ease, visibility 0.6s ease;
+}
+
+.sansa-loading.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.loading-lotus {
+  width: 56px;
+  height: 56px;
+  color: var(--accent-gold);
+  animation: lotusPulse 2.8s ease-in-out infinite;
+}
+
+@keyframes lotusPulse {
+  0%, 100% {
+    transform: scale(0.96);
+    opacity: 0.78;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+}
+
+.loading-title {
+  font-family: var(--font-serif);
+  font-size: 1.55rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  color: var(--text-primary);
+}
+
+.loading-status {
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+}
+
+/* ==========================================================================
+   3. 상단 HUD 헤더 (공간 안내 & 환경 제어)
+   ========================================================================== */
+.sansa-hud-top {
+  position: fixed;
+  top: 18px;
+  left: 20px;
+  right: 20px;
+  z-index: 30;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  pointer-events: none;
+}
+
+.hud-brand-card {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 18px;
+  border-radius: 18px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  box-shadow: var(--shadow-soft);
+}
+
+.hud-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hud-space-title {
+  font-family: var(--font-serif);
+  font-size: 1.12rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text-primary);
+}
+
+.hud-visitor-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--accent-warm);
+  background: rgba(230, 196, 131, 0.15);
+  border: 1px solid rgba(230, 196, 131, 0.3);
+}
+
+.hud-visitor-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #8ce09a;
+  box-shadow: 0 0 6px #8ce09a;
+}
+
+.hud-space-sub {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.hud-top-controls {
+  pointer-events: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.hud-pill-btn,
+.hud-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.84rem;
+  font-weight: 500;
+  cursor: pointer;
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  box-shadow: var(--shadow-soft);
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+
+.hud-pill-btn:hover,
+.hud-select:hover {
+  background: var(--glass-bg-hover);
+  border-color: rgba(244, 236, 216, 0.38);
+}
+
+.hud-pill-btn.is-active {
+  background: var(--glass-active);
+  border-color: var(--glass-border-strong);
+  color: var(--accent-warm);
+}
+
+.hud-pill-btn svg {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+
+.hud-select {
+  appearance: none;
+  padding-right: 30px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23f7f3e8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 11px center;
+}
+
+.hud-select option {
+  background: #1f2621;
+  color: var(--text-primary);
+}
+
+/* ==========================================================================
+   4. 하단 수행 액션 독 (합장 · 절하기 · 염주 · 목탁 · 자리 앉기)
+   ========================================================================== */
+.sansa-hud-bottom {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.action-dock {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  box-shadow: var(--shadow-soft);
+}
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 42px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+  background: rgba(255, 255, 255, 0.13);
+  border-color: rgba(244, 236, 216, 0.24);
+  transform: translateY(-1px);
+}
+
+.action-btn.is-active {
+  background: var(--glass-active);
+  border-color: var(--glass-border-strong);
+  color: var(--accent-warm);
+}
+
+.action-btn svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.hud-guide-hint {
+  font-size: 0.77rem;
+  color: rgba(247, 243, 232, 0.68);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.65);
+  letter-spacing: 0.02em;
+}
+
+/* ==========================================================================
+   5. 3D 참배객 이름표 (SANSA_CORE `n2` 클래스 연동)
+   ========================================================================== */
+.visitor-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 12;
+}
+
+.visitor-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(20, 25, 21, 0.68);
+  border: 1px solid rgba(244, 236, 216, 0.22);
+  color: var(--text-primary);
+  font-size: 0.76rem;
+  font-weight: 500;
+  white-space: nowrap;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+  will-change: transform, opacity;
+}
+
+.visitor-label.is-self {
+  border-color: rgba(230, 196, 131, 0.45);
+}
+
+.visitor-label-me {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(230, 196, 131, 0.25);
+  color: var(--accent-warm);
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   6. 향로 분향 / 복전함 3D 투영 컨트롤 (SANSA_CORE `m2` 클래스 연동)
+   ========================================================================== */
+.devotional-controls {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.devotional-sign {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 4px 11px;
+  border-radius: 999px;
+  background: rgba(26, 31, 27, 0.72);
+  border: 1px solid rgba(230, 196, 131, 0.38);
+  color: var(--accent-warm);
+  font-family: var(--font-serif);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+.devotional-dock {
+  position: absolute;
+  left: 50%;
+  bottom: 94px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: auto;
+}
+
+.devotional-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 20px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border-strong);
+  background: rgba(40, 35, 25, 0.78);
+  color: var(--accent-warm);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.42);
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+
+.devotional-action:hover {
+  background: rgba(62, 52, 35, 0.88);
+  transform: translateY(-2px);
+}
+
+.devotional-action svg {
+  width: 18px;
+  height: 18px;
+}
+
+.incense-note {
+  position: absolute;
+  top: 86px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 22px;
+  border-radius: 18px;
+  background: rgba(24, 29, 25, 0.82);
+  border: 1px solid var(--glass-border-strong);
+  backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-soft);
+  pointer-events: auto;
+}
+
+.incense-note-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: center;
+}
+
+.incense-note-copy strong {
+  font-family: var(--font-serif);
+  font-size: 0.98rem;
+  color: var(--accent-warm);
+}
+
+.incense-note-copy span {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.incense-cancel {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   7. 108 염주 3D 인터랙티브 뷰 (SANSA_CORE `zM` / `PrayerBeadsView` 연동)
+   ========================================================================== */
+.sansa-beads-view {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: radial-gradient(circle at 50% 50%, rgba(36, 31, 24, 0.88), rgba(14, 16, 14, 0.95));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+
+.sansa-beads-view.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.beads-stage {
+  position: absolute;
+  inset: 0;
+  cursor: grab;
+}
+
+.sansa-beads-view.is-dragging .beads-stage {
+  cursor: grabbing;
+}
+
+.beads-stage canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  outline: none;
+}
+
+.beads-header {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 26px;
+  pointer-events: none;
+}
+
+.beads-back,
+.beads-sound {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  backdrop-filter: blur(14px);
+}
+
+.beads-back svg,
+.beads-sound svg {
+  width: 18px;
+  height: 18px;
+}
+
+.beads-footer {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 38px;
+  pointer-events: none;
+}
+
+.beads-counter {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--font-serif);
+}
+
+.beads-count {
+  font-size: 2.6rem;
+  font-weight: 600;
+  color: var(--accent-warm);
+}
+
+.beads-counter span {
+  font-size: 1.15rem;
+  color: var(--text-secondary);
+}
+
+.beads-round {
+  font-size: 0.88rem;
+  color: var(--accent-gold);
+}
+
+.beads-gesture-guide {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.sansa-beads-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+/* ==========================================================================
+   8. 목탁(Moktak) 인터랙티브 & 16박 자동재생 뷰
+   ========================================================================== */
+.sansa-moktak-view {
+  position: fixed;
+  right: 24px;
+  bottom: 92px;
+  z-index: 55;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 20px;
+  width: 250px;
+  border-radius: 26px;
+  background: rgba(24, 28, 24, 0.78);
+  border: 1px solid var(--glass-border-strong);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.48);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(12px) scale(0.96);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.sansa-moktak-view.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.moktak-instrument {
+  position: relative;
+  width: 168px;
+  height: 148px;
+  border: none;
+  background: radial-gradient(circle, rgba(230, 196, 131, 0.14) 0%, transparent 72%);
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+}
+
+.moktak-instrument img {
+  width: 156px;
+  height: auto;
+  pointer-events: none;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
+}
+
+.moktak-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.moktak-play {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  font-size: 0.84rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.moktak-play[aria-pressed='true'] {
+  background: var(--glass-active);
+  border-color: var(--glass-border-strong);
+  color: var(--accent-warm);
+}
+
+.moktak-close {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.moktak-play svg,
+.moktak-close svg {
+  width: 16px;
+  height: 16px;
+}
+
+.moktak-status {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1.35;
+}
+
+/* ==========================================================================
+   9. 복전함(Offering Chest) 다이얼로그 및 토스트 알림
+   ========================================================================== */
+.sansa-dialog {
+  margin: auto;
+  padding: 28px 26px;
+  max-width: 400px;
+  width: calc(100% - 32px);
+  border-radius: 24px;
+  border: 1px solid var(--glass-border-strong);
+  background: rgba(25, 30, 26, 0.94);
+  color: var(--text-primary);
+  backdrop-filter: blur(22px);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+}
+
+.sansa-dialog::backdrop {
+  background: rgba(8, 10, 9, 0.55);
+  backdrop-filter: blur(4px);
+}
+
+.dialog-title {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  color: var(--accent-warm);
+  margin-bottom: 10px;
+}
+
+.dialog-desc {
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+}
+
+.dialog-close-btn {
+  width: 100%;
+  height: 42px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border-strong);
+  background: var(--glass-active);
+  color: var(--accent-warm);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sansa-toast {
+  position: fixed;
+  top: 84px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  z-index: 90;
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: rgba(22, 27, 23, 0.86);
+  border: 1px solid var(--glass-border-strong);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-soft);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.sansa-toast.is-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+@media (max-width: 720px) {
+  .sansa-hud-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .hud-top-controls {
+    justify-content: flex-start;
+  }
+  .action-dock {
+    max-width: 96vw;
+    overflow-x: auto;
+  }
+  .action-btn {
+    padding: 0 12px;
+    font-size: 0.82rem;
+  }
+  .sansa-moktak-view {
+    right: 12px;
+    bottom: 84px;
+  }
+}

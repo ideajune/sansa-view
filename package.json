@@ -1,0 +1,11 @@
+{
+  "name": "sansa-view",
+  "version": "1.0.0",
+  "description": "산사 (Sansa Temple) — 3D Cheongyeondang Sanctuary Clean Modular Reconstruction",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx http-server -p 8090 -c-1 --cors",
+    "start": "npx http-server -p 8090 -c-1 --cors"
+  }
+}
